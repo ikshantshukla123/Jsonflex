@@ -61,16 +61,18 @@ func WithResponseKeyFunc(fn KeyFunc) Option {
 // converter does not recurse into it). This is useful for fields that hold
 // arbitrary, caller-controlled JSON whose shape you do not want to alter.
 //
-// Exclusion is matched against the key as it appears in the document being
-// processed, so list request keys in their incoming (camelCase) form and
-// response keys in their outgoing (snake_case) form as appropriate.
+// Matching is direction-agnostic and case-convention-insensitive: names are
+// compared in a canonical snake_case form, so a single Exclude protects a field
+// on both the request (camelCase, e.g. "rawMeta") and response (snake_case,
+// e.g. "raw_meta") sides. You may therefore pass either form —
+// Exclude("rawMeta") and Exclude("raw_meta") are equivalent.
 func Exclude(keys ...string) Option {
 	return func(c *config) {
 		if c.exclude == nil {
 			c.exclude = make(map[string]struct{}, len(keys))
 		}
 		for _, k := range keys {
-			c.exclude[k] = struct{}{}
+			c.exclude[canonicalKey(k)] = struct{}{}
 		}
 	}
 }

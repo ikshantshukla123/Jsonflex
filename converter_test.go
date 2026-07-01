@@ -44,3 +44,29 @@ func TestConverterExclude(t *testing.T) {
 	got := c.ConvertRequestBody([]byte(`{"userName":"amy","rawMeta":{"keepThis":1}}`))
 	assertJSONEqual(t, got, `{"user_name":"amy","rawMeta":{"keepThis":1}}`)
 }
+
+// TestConverterExcludeIsDirectionAgnostic pins the fix for the exclusion
+// footgun: a single Exclude("rawMeta") must protect the field on BOTH the
+// request side (where the key is camelCase "rawMeta") and the response side
+// (where the same field is snake_case "raw_meta").
+func TestConverterExcludeIsDirectionAgnostic(t *testing.T) {
+	c := New(Exclude("rawMeta"))
+
+	req := c.ConvertRequestBody([]byte(`{"userName":"amy","rawMeta":{"keepThis":1}}`))
+	assertJSONEqual(t, req, `{"user_name":"amy","rawMeta":{"keepThis":1}}`)
+
+	resp := c.ConvertResponseBody([]byte(`{"user_name":"amy","raw_meta":{"keep_this":1}}`))
+	assertJSONEqual(t, resp, `{"userName":"amy","raw_meta":{"keep_this":1}}`)
+}
+
+// TestConverterExcludeAcceptsEitherForm shows that passing the snake_case name
+// is equivalent to passing the camelCase name.
+func TestConverterExcludeAcceptsEitherForm(t *testing.T) {
+	c := New(Exclude("raw_meta"))
+
+	req := c.ConvertRequestBody([]byte(`{"userName":"amy","rawMeta":{"keepThis":1}}`))
+	assertJSONEqual(t, req, `{"user_name":"amy","rawMeta":{"keepThis":1}}`)
+
+	resp := c.ConvertResponseBody([]byte(`{"user_name":"amy","raw_meta":{"keep_this":1}}`))
+	assertJSONEqual(t, resp, `{"userName":"amy","raw_meta":{"keep_this":1}}`)
+}

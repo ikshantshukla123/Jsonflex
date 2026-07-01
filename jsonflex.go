@@ -111,6 +111,16 @@ func SnakeToCamel(s string) string {
 	return b.String()
 }
 
+// canonicalKey reduces a key to a single canonical form used to compare
+// exclusions independently of case convention. snake_case is chosen as the
+// canonical form because CamelToSnake maps camelCase into it and is idempotent
+// on snake_case input, so both "rawMeta" and "raw_meta" normalize to
+// "raw_meta". This is what makes Exclude match on both the request and the
+// response side.
+func canonicalKey(s string) string {
+	return CamelToSnake(s)
+}
+
 // ToSnakeCase converts every object key in a JSON document from camelCase to
 // snake_case, recursively. Arrays and nested objects are handled. The input
 // must be a valid JSON value; otherwise an error is returned and the caller
@@ -150,14 +160,22 @@ func transform(data []byte, keyFn KeyFunc, exclude map[string]struct{}) ([]byte,
 
 // convertKeys walks a decoded JSON value, rewriting object keys with keyFn.
 // Excluded keys (and their entire subtree) are left as-is.
+//
+// The exclude set holds canonical (snake_case) key names, and each document key
+// is normalized the same way before matching, so an exclusion matches
+// regardless of the case convention the key currently uses. This makes Exclude
+// direction-agnostic: the same exclusion protects a field on both the request
+// (camelCase) and response (snake_case) sides. See canonicalKey.
 func convertKeys(v any, keyFn KeyFunc, exclude map[string]struct{}) any {
 	switch node := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(node))
 		for k, child := range node {
-			if _, skip := exclude[k]; skip {
-				out[k] = child
-				continue
+			if len(exclude) > 0 {
+				if _, skip := exclude[canonicalKey(k)]; skip {
+					out[k] = child
+					continue
+				}
 			}
 			out[keyFn(k)] = convertKeys(child, keyFn, exclude)
 		}

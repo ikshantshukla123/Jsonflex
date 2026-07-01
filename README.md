@@ -68,7 +68,9 @@ jsonflex.Middleware(
 
 `Exclude` is for fields whose value is arbitrary, caller-controlled JSON that
 you don't want reshaped — the key keeps its name and the whole subtree is passed
-through verbatim.
+through verbatim. Matching is direction-agnostic: `Exclude("rawMeta")` protects
+the field on both the request side (`rawMeta`) and the response side
+(`raw_meta`), and passing either case form is equivalent.
 
 ## Framework adapters
 

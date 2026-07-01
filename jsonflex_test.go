@@ -111,7 +111,7 @@ func TestTransformScalarAndNull(t *testing.T) {
 
 func TestExcludeLeavesSubtreeUntouched(t *testing.T) {
 	in := []byte(`{"userName":"amy","rawMeta":{"keepThis":1,"andThis":2}}`)
-	got, err := transform(in, CamelToSnake, map[string]struct{}{"rawMeta": {}})
+	got, err := transform(in, CamelToSnake, map[string]struct{}{"raw_meta": {}})
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
