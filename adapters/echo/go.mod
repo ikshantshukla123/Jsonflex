@@ -3,7 +3,7 @@ module github.com/ikshantshukla123/jsonflex/adapters/echo
 go 1.22
 
 require (
-	github.com/ikshantshukla123/jsonflex v1.1.0
+	github.com/ikshantshukla123/jsonflex v1.2.0
 	github.com/labstack/echo/v4 v4.12.0
 )
 
