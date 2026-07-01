@@ -172,8 +172,8 @@ func TestIsJSONContentType(t *testing.T) {
 		"":                                  false,
 	}
 	for ct, want := range cases {
-		if got := isJSONContentType(ct); got != want {
-			t.Errorf("isJSONContentType(%q) = %v, want %v", ct, got, want)
+		if got := IsJSONContentType(ct); got != want {
+			t.Errorf("IsJSONContentType(%q) = %v, want %v", ct, got, want)
 		}
 	}
 }

@@ -100,30 +100,30 @@ func newConfig(opts []Option) *config {
 // unchanged rather than causing an error, so the middleware is safe to apply
 // broadly.
 func Middleware(opts ...Option) func(http.Handler) http.Handler {
-	cfg := newConfig(opts)
+	conv := New(opts...)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if cfg.convertRequest {
-				cfg.convertRequestBody(r)
+			if conv.RequestConversionEnabled() {
+				applyRequestConversion(conv, r)
 			}
 
-			if !cfg.convertResponse {
+			if !conv.ResponseConversionEnabled() {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			rec := &responseRecorder{ResponseWriter: w}
 			next.ServeHTTP(rec, r)
-			cfg.writeResponse(w, rec)
+			writeConvertedResponse(conv, w, rec)
 		})
 	}
 }
 
-// convertRequestBody rewrites r.Body in place when it carries a JSON payload.
-// On any read or parse problem the original body is restored so the downstream
+// applyRequestConversion rewrites r.Body in place when it carries a JSON
+// payload. On a read error the original body is restored so the downstream
 // handler sees exactly what the client sent.
-func (c *config) convertRequestBody(r *http.Request) {
-	if r.Body == nil || !isJSONContentType(r.Header.Get("Content-Type")) {
+func applyRequestConversion(conv *Converter, r *http.Request) {
+	if r.Body == nil || !IsJSONContentType(r.Header.Get("Content-Type")) {
 		return
 	}
 
@@ -136,27 +136,18 @@ func (c *config) convertRequestBody(r *http.Request) {
 		return
 	}
 
-	if len(bytes.TrimSpace(body)) > 0 {
-		if converted, cerr := transform(body, c.requestKeyFn, c.exclude); cerr == nil {
-			body = converted
-		}
-		// On a parse error we intentionally keep the original body.
-	}
-
+	body = conv.ConvertRequestBody(body)
 	r.Body = io.NopCloser(bytes.NewReader(body))
 	r.ContentLength = int64(len(body))
 	r.Header.Set("Content-Length", strconv.Itoa(len(body)))
 }
 
-// writeResponse flushes a buffered response, converting the body first when it
-// is JSON.
-func (c *config) writeResponse(w http.ResponseWriter, rec *responseRecorder) {
+// writeConvertedResponse flushes a buffered response, converting the body first
+// when it is JSON.
+func writeConvertedResponse(conv *Converter, w http.ResponseWriter, rec *responseRecorder) {
 	body := rec.buf.Bytes()
-
-	if isJSONContentType(rec.Header().Get("Content-Type")) && len(bytes.TrimSpace(body)) > 0 {
-		if converted, err := transform(body, c.responseKeyFn, c.exclude); err == nil {
-			body = converted
-		}
+	if IsJSONContentType(rec.Header().Get("Content-Type")) {
+		body = conv.ConvertResponseBody(body)
 	}
 
 	status := rec.status
@@ -188,10 +179,11 @@ func (r *responseRecorder) Write(b []byte) (int, error) {
 	return r.buf.Write(b)
 }
 
-// isJSONContentType reports whether a Content-Type header denotes JSON,
+// IsJSONContentType reports whether a Content-Type header denotes JSON,
 // tolerating parameters such as "application/json; charset=utf-8" and
-// "+json" suffixes like application/vnd.api+json.
-func isJSONContentType(ct string) bool {
+// "+json" suffixes like application/vnd.api+json. Framework adapters use it to
+// decide whether a request or response body is eligible for conversion.
+func IsJSONContentType(ct string) bool {
 	if ct == "" {
 		return false
 	}
