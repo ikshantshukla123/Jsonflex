@@ -70,6 +70,48 @@ jsonflex.Middleware(
 you don't want reshaped — the key keeps its name and the whole subtree is passed
 through verbatim.
 
+## Framework adapters
+
+The core middleware is standard `net/http`, so it works directly with any
+`net/http`-compatible router. Thin adapter modules are provided for the popular
+frameworks — each keeps its framework dependency out of the core module, so
+importing jsonflex never pulls in Gin/Echo/Chi.
+
+**Chi** (and `net/http`, `chi`, `gorilla/mux`, stdlib `ServeMux`) — works directly:
+
+```go
+r := chi.NewRouter()
+r.Use(jsonflex.Middleware())
+```
+
+**Gin**:
+
+```go
+import ginflex "github.com/ikshantshukla123/jsonflex/adapters/gin"
+
+r := gin.New()
+r.Use(ginflex.Middleware())
+```
+
+**Echo**:
+
+```go
+import echoflex "github.com/ikshantshukla123/jsonflex/adapters/echo"
+
+e := echo.New()
+e.Use(echoflex.Middleware())
+```
+
+Every adapter accepts the same `jsonflex.Option` values as the core middleware
+(`Exclude`, `WithResponseConversion(false)`, custom key funcs, …). Install the
+one you need:
+
+```sh
+go get github.com/ikshantshukla123/jsonflex/adapters/gin
+go get github.com/ikshantshukla123/jsonflex/adapters/echo
+# Chi needs no adapter; go get the core module and use jsonflex.Middleware()
+```
+
 ## Standalone conversion
 
 The transforms are usable without the middleware:
@@ -100,10 +142,13 @@ jsonflex.SnakeToCamel("user_id") // "userId"
 
 ## Roadmap
 
-- **v1** (this release) — bidirectional net/http middleware, recursive
-  nested/array support, configurable exclusions, tests & benchmarks.
-- **v2** — framework adapters (Gin, Echo, Chi, Fiber).
-- **v3** — optional streaming transformation for large payloads.
+- **v1** — bidirectional net/http middleware, recursive nested/array support,
+  configurable exclusions, tests & benchmarks.
+- **v1.1** — reusable `Converter` API (`New`, `ConvertRequestBody`,
+  `ConvertResponseBody`) shared by the middleware and adapters.
+- **v2** (current) — framework adapters for Gin, Echo, and Chi, each an
+  independent module so the core stays dependency-free.
+- **v3** — optional streaming transformation for large payloads; Fiber adapter.
 - **v4** — byte-level key rewriter that copies value bytes verbatim for
   near-zero allocations on hot paths.
 
