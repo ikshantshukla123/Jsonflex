@@ -19,20 +19,48 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Verify formatting
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "These files are not gofmt-ed:"
-            echo "$unformatted"
-            exit 1
-          fi
-
       - name: Vet
         run: go vet ./...
 
       - name: Test
-        run: go test -race -coverprofile=coverage.out ./...
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
 
       - name: Benchmarks (smoke)
         run: go test -run=XXX -bench=. -benchtime=10x ./...
+
+      - name: Upload coverage to Codecov
+        if: matrix.go == '1.24'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          fail_ci_if_error: false
+
+  adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Test framework adapters
+        run: |
+          for m in gin echo chi; do
+            echo "== adapters/$m =="
+            (cd "adapters/$m" && go test -race ./...)
+          done
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: golangci-lint
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run ./...

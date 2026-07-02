@@ -1,5 +1,11 @@
 # jsonflex
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/ikshantshukla123/jsonflex.svg)](https://pkg.go.dev/github.com/ikshantshukla123/jsonflex)
+[![CI](https://github.com/ikshantshukla123/Jsonflex/actions/workflows/ci.yml/badge.svg)](https://github.com/ikshantshukla123/Jsonflex/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ikshantshukla123/Jsonflex/branch/main/graph/badge.svg)](https://codecov.io/gh/ikshantshukla123/Jsonflex)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Go 1.22+](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+
 Transparent HTTP middleware that converts JSON key naming between **camelCase**
 (what your JavaScript/TypeScript frontend sends) and **snake_case** (what your
 Go structs and database expect) — in both directions, automatically.

@@ -138,7 +138,7 @@ func applyRequestConversion(conv *Converter, r *http.Request) {
 	}
 
 	body, err := io.ReadAll(r.Body)
-	r.Body.Close()
+	_ = r.Body.Close()
 	if err != nil {
 		// Give the handler a body it can still attempt to read; the read error
 		// will resurface there.
@@ -168,7 +168,7 @@ func writeConvertedResponse(conv *Converter, w http.ResponseWriter, rec *respons
 	// The length changed, so any Content-Length the handler set is stale.
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(status)
-	w.Write(body)
+	_, _ = w.Write(body)
 }
 
 // responseRecorder buffers a handler's response so the body can be re-encoded
