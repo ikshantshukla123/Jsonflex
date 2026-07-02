@@ -1,0 +1,14 @@
+# Coverage reflects the library, not runnable demos or generated files.
+ignore:
+  - "examples/**"
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto      # compare against the previous commit
+        threshold: 1%      # allow tiny dips without failing the check
+    patch:
+      default:
+        target: 80%        # new/changed lines should be reasonably covered
+        informational: true
