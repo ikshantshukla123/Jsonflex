@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/ikshantshukla123/jsonflex v1.2.0
+	github.com/ikshantshukla123/jsonflex v1.3.0
 )
 
 require (
