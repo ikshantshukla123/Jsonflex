@@ -224,6 +224,8 @@ schemes. Both engines are correctness-tested against each other.
 
 ## Benchmarks
 
+![Benchmark: byte-level engine vs. tree-walk — ~9× faster, 150 → 1 allocation](benchy.png)
+
 Indicative numbers on an Apple Silicon laptop (`go test -bench=.`); run them on
 your own hardware for accurate figures. Byte-level engine vs. tree-walk on the
 same mixed nested payload:
