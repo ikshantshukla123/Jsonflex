@@ -15,6 +15,8 @@ type config struct {
 	convertResponse bool
 	requestKeyFn    KeyFunc
 	responseKeyFn   KeyFunc
+	requestStyle    keyStyle
+	responseStyle   keyStyle
 	exclude         map[string]struct{}
 }
 
@@ -37,21 +39,25 @@ func WithResponseConversion(enabled bool) Option {
 }
 
 // WithRequestKeyFunc overrides the key transform applied to request bodies.
-// The default is CamelToSnake.
+// The default is CamelToSnake. Supplying a custom function selects the
+// tree-walk engine; the default direction uses the faster byte-level engine.
 func WithRequestKeyFunc(fn KeyFunc) Option {
 	return func(c *config) {
 		if fn != nil {
 			c.requestKeyFn = fn
+			c.requestStyle = styleCustom
 		}
 	}
 }
 
 // WithResponseKeyFunc overrides the key transform applied to response bodies.
-// The default is SnakeToCamel.
+// The default is SnakeToCamel. Supplying a custom function selects the
+// tree-walk engine; the default direction uses the faster byte-level engine.
 func WithResponseKeyFunc(fn KeyFunc) Option {
 	return func(c *config) {
 		if fn != nil {
 			c.responseKeyFn = fn
+			c.responseStyle = styleCustom
 		}
 	}
 }
@@ -83,6 +89,8 @@ func newConfig(opts []Option) *config {
 		convertResponse: true,
 		requestKeyFn:    CamelToSnake,
 		responseKeyFn:   SnakeToCamel,
+		requestStyle:    styleCamelToSnake,
+		responseStyle:   styleSnakeToCamel,
 	}
 	for _, opt := range opts {
 		opt(c)

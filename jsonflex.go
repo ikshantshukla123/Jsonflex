@@ -125,20 +125,26 @@ func canonicalKey(s string) string {
 // snake_case, recursively. Arrays and nested objects are handled. The input
 // must be a valid JSON value; otherwise an error is returned and the caller
 // should use the original bytes.
+//
+// It uses the byte-level engine: values are copied verbatim (preserving number
+// precision and byte content) and only keys are rewritten, so key order is
+// preserved and allocations are minimal.
 func ToSnakeCase(data []byte) ([]byte, error) {
-	return Transform(data, CamelToSnake)
+	return transformBytes(data, styleCamelToSnake, nil)
 }
 
 // ToCamelCase converts every object key in a JSON document from snake_case to
-// camelCase, recursively.
+// camelCase, recursively. Like ToSnakeCase it uses the byte-level engine.
 func ToCamelCase(data []byte) ([]byte, error) {
-	return Transform(data, SnakeToCamel)
+	return transformBytes(data, styleSnakeToCamel, nil)
 }
 
-// Transform decodes a JSON document, applies keyFn to every object key at every
-// level of nesting, and re-encodes it. Values are preserved: numbers keep their
-// original precision (no float64 rounding), and HTML characters (<, >, &) are
-// not escaped.
+// Transform applies an arbitrary keyFn to every object key at every level of
+// nesting and re-encodes the document. Because keyFn is caller-supplied, this
+// uses the tree-walk engine (decode, walk, re-encode); values still keep their
+// original precision (no float64 rounding) and HTML characters (<, >, &) are
+// not escaped. For the built-in camelCase/snake_case directions prefer
+// ToSnakeCase / ToCamelCase, which use the faster byte-level engine.
 //
 // If data is not valid JSON, Transform returns an error and the caller should
 // fall back to the original bytes rather than failing the request.

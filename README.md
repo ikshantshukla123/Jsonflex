@@ -138,9 +138,19 @@ jsonflex.SnakeToCamel("user_id") // "userId"
 - **Response conversion buffers the body** so it can be re-encoded. For
   streaming endpoints (e.g. Server-Sent Events) disable it with
   `WithResponseConversion(false)`.
-- Conversion works on a decode → walk → re-encode basis using the standard
-  library, so it is correct for all valid JSON. It is not zero-allocation; a
-  byte-level key rewriter is planned (see the roadmap) for hot paths.
+
+## How it works
+
+For the built-in camelCase/snake_case directions, jsonflex uses a **byte-level
+engine**: it scans the raw JSON, copies every value and structural token
+verbatim, and rewrites only object keys. Values are never decoded, so integer
+precision and byte content are preserved exactly, key order is preserved, and a
+typical body converts with a **single allocation** (the output buffer) instead
+of one per element.
+
+Supplying a custom `WithRequestKeyFunc` / `WithResponseKeyFunc` falls back to a
+decode → walk → re-encode engine, which is slower but supports arbitrary naming
+schemes. Both engines are correctness-tested against each other.
 
 ## Roadmap
 
@@ -148,21 +158,25 @@ jsonflex.SnakeToCamel("user_id") // "userId"
   configurable exclusions, tests & benchmarks.
 - **v1.1** — reusable `Converter` API (`New`, `ConvertRequestBody`,
   `ConvertResponseBody`) shared by the middleware and adapters.
-- **v2** (current) — framework adapters for Gin, Echo, and Chi, each an
-  independent module so the core stays dependency-free.
-- **v3** — optional streaming transformation for large payloads; Fiber adapter.
-- **v4** — byte-level key rewriter that copies value bytes verbatim for
-  near-zero allocations on hot paths.
+- **v2** — framework adapters for Gin, Echo, and Chi, each an independent
+  module so the core stays dependency-free.
+- **v3 (done, shipped as v1.3)** — byte-level key rewriter that copies value
+  bytes verbatim: ~9× faster and ~1 allocation per body versus the tree-walk
+  engine.
+- **v4** — optional streaming transformation for very large payloads; Fiber
+  adapter.
 
 ## Benchmarks
 
 Indicative numbers on an Apple Silicon laptop (`go test -bench=.`); run them on
-your own hardware for accurate figures:
+your own hardware for accurate figures. Byte-level engine vs. tree-walk on the
+same mixed nested payload:
 
 ```
-BenchmarkToSnakeCase     ~7.8 µs/op   ~56 MB/s    (mixed nested payload)
-BenchmarkCamelToSnake    ~136 ns/op   1 alloc/op  (single key)
-BenchmarkSnakeToCamel    ~111 ns/op   1 alloc/op  (single key)
+BenchmarkFastPathToSnake   ~0.87 µs/op   ~510 MB/s     1 alloc/op   (byte-level, default)
+BenchmarkTreeWalkToSnake   ~7.7  µs/op   ~57  MB/s   150 allocs/op  (custom KeyFunc path)
+BenchmarkCamelToSnake      ~136  ns/op                 1 alloc/op   (single key)
+BenchmarkSnakeToCamel      ~111  ns/op                 1 alloc/op   (single key)
 ```
 
 ## License
